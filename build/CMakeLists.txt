@@ -6,6 +6,7 @@
 
 cmake_minimum_required(VERSION 2.8)
 
+# 针对 Windows 平台设置编译器的编译选项
 if ( WIN32 AND NOT CYGWIN AND NOT ( CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" ) AND NOT ANDROID)
 	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT" CACHE STRING "")
 	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd" CACHE STRING "")
@@ -15,6 +16,7 @@ endif ()
 
 project(XLua)
 
+# 针对 iOS 平台设置编译器的编译选项
 if ( IOS )
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fembed-bitcode")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fembed-bitcode")
@@ -39,6 +41,30 @@ endif()
 
 set(LUA_SRC_PATH lua-${LUA_VERSION}/src)
 set(LUAJIT_SRC_PATH luajit-2.1.0b3/src)
+
+#begin lua-protobuf
+set(LPB_SRC lua-protobuf/pb.c)
+set_property(
+    SOURCE ${LPB_SRC}
+    APPEND
+    PROPERTY COMPILE_DEFINITIONS
+    LUA_LIB
+    )
+list(APPEND THIRDPART_INC lua-protobuf)
+set(THIRDPART_SRC ${THIRDPART_SRC} ${LPB_SRC})
+#end lua-protobuf
+
+#begin luaSQLite
+set(LuaSQLite_SRC lsqlite3/lsqlite3.c lsqlite3/sqlite3.c)
+set_property(
+    SOURCE ${LuaSQLite_SRC}
+    APPEND
+    PROPERTY COMPILE_DEFINITIONS
+    LUA_LIB
+    )
+list(APPEND THIRDPART_INC lsqlite3)
+set(THIRDPART_SRC ${THIRDPART_SRC} ${LuaSQLite_SRC})
+#end luaSQLite
 
 if (USING_LUAJIT)
 	
@@ -159,13 +185,14 @@ if (APPLE)
         if (BUILD_SILICON)
            set(CMAKE_OSX_ARCHITECTURES arm64)
 
-            add_library(xlua SHARED
+            add_library(xlua MODULE
                 ${LUA_CORE}
                 ${LUA_LIB}
                 ${LUA_SOCKET}
                 ${XLUA_CORE}
                 ${THIRDPART_SRC}
             )
+            set_target_properties ( xlua PROPERTIES BUNDLE TRUE )
         else ()
             set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD_64_BIT)")
             add_library(xlua MODULE
